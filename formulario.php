@@ -9,6 +9,36 @@ License: GPLv2 or later
 Text Domain: formulario
 */
 
+function getRealIP()
+{
+
+    if (isset($_SERVER["HTTP_CLIENT_IP"]))
+    {
+        return $_SERVER["HTTP_CLIENT_IP"];
+    }
+    elseif (isset($_SERVER["HTTP_X_FORWARDED_FOR"]))
+    {
+        return $_SERVER["HTTP_X_FORWARDED_FOR"];
+    }
+    elseif (isset($_SERVER["HTTP_X_FORWARDED"]))
+    {
+        return $_SERVER["HTTP_X_FORWARDED"];
+    }
+    elseif (isset($_SERVER["HTTP_FORWARDED_FOR"]))
+    {
+        return $_SERVER["HTTP_FORWARDED_FOR"];
+    }
+    elseif (isset($_SERVER["HTTP_FORWARDED"]))
+    {
+        return $_SERVER["HTTP_FORWARDED"];
+    }
+    else
+    {
+        return $_SERVER["REMOTE_ADDR"];
+    }
+
+}
+
 // Cuando el plugin se active se crea la tabla para recoger los datos si no existe
 register_activation_hook(__FILE__, 'Kfp_Aspirante_init');
  
@@ -34,6 +64,7 @@ function Kfp_Aspirante_init()
         nivel_css smallint(4) NOT NULL,
         nivel_js smallint(4) NOT NULL,
         aceptacion smallint(4) NOT NULL,
+        ip_origen varchar(40) NOT NULL,
         created_at datetime NOT NULL,
         UNIQUE (id)
         ) $charset_collate;";
@@ -45,6 +76,16 @@ function Kfp_Aspirante_init()
 // Define el shortcode y lo asocia a una función
 add_shortcode("formulario", 'Kfp_Aspirante_form');
 
+  //Carga hoja javascript
+  add_action("wp_enqueue_scripts", "dcms_insertar_js");
+
+  function dcms_insertar_js(){
+      
+      wp_register_script('miscript', plugins_url('formulario.js', __FILE__),array('jquery'), '1', true );
+      wp_enqueue_script('miscript');
+    }
+      
+
 /** 
  * Define la función que ejecutará el shortcode
  * De momento sólo pinta un formulario que no hace nada
@@ -53,6 +94,8 @@ add_shortcode("formulario", 'Kfp_Aspirante_form');
  */
 function Kfp_aspirante_form() 
 {
+  
+
     // Carga esta hoja de estilo para poner más bonito el formulario
     wp_enqueue_style('css_aspirante', plugins_url('formulario.css', __FILE__));
 
@@ -75,6 +118,7 @@ function Kfp_aspirante_form()
         $nivel_js = (int)$_POST['nivel_js'];
         $aceptacion = (int)$_POST['aceptacion'];
         $created_at = date('Y-m-d H:i:s');
+        $ip_origen=getRealIp();
         $wpdb->insert(
             $tabla_aspirantes,
             array(
@@ -84,6 +128,7 @@ function Kfp_aspirante_form()
                 'nivel_css' => $nivel_css,
                 'nivel_js' => $nivel_js,
                 'aceptacion' => $aceptacion,
+                "ip_origen"=> $ip_origen,
                 'created_at' => $created_at,
             )
         );
@@ -137,15 +182,27 @@ class="cuestionario">
 al dedillo
         </div>
         <div class="form-input">
-            <label for="aceptacion">La información facilitada se tratará 
+            <label  for="aceptacion">La información facilitada se tratará 
             con respeto y admiración.</label>
             <input type="checkbox" id="aceptacion" name="aceptacion"
-value="1" required> Entiendo y acepto las condiciones
+            value="1" required><a id="privacidad" target="_blank" href="http://www.google.com"> Entiendo y acepto las condiciones
         </div>
         <div class="form-input">
-            <input type="submit" value="Enviar">
+            <input type="submit" id="btnFormulario" value="Enviar"disabled="true" title="Es necesario aceptar las condiciones">
         </div>
     </form>
+    <!---
+    <script>
+        window.onload=()=>{
+        
+        $("#privacidad").click(()=>{
+            e.preventDefault;
+            alert ("Aceptando condiciones");
+        })
+    }
+        
+    </script>
+
     <?php
      
     // Devuelve el contenido del buffer de salida
